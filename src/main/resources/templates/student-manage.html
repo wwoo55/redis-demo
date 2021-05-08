@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>role-manager</title>
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}" media="all">
+    <script th:src="@{/js/jquery-3.3.1.js}"></script>
+    <script th:src="@{/layui/layui.js}"></script>
+    <script type="text/html" id="barDemo">
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="update">修改</a>
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete">删除</a>
+    </script>
+
+    <script th:inline="none">
+        layui.use('table', function () {
+            var table = layui.table;
+            table.render({
+                elem: '#demo'
+                , url: '/student/listStudent'
+                /*,toolbar: '#toolbarDemo'*/
+                , cellMinWidth: 80 //全局定义常规单元格的最小宽度，layui 2.2.1 新增
+                , page: true //开启分页
+                , limit: 10
+                , limits: [5, 10, 15]
+                , id: 'demo'
+                , cols: [[
+                    {field: 'id', title: 'id'}
+                    , {field: 'name', title: '名字'}
+                    , {field: 'birthdayStr', title: '出生日期'}
+                    , {field: 'description', title: '备注'}
+                    , {field: 'avgScore', title: '平均分'}
+                    , {fixed: 'right', title: '操作', toolbar: '#barDemo'}
+                ]]
+            });
+
+            // 表格重载
+            var $ = layui.$, active = {
+                reload: function () {
+                    var demoReload = $('#demoReload');
+                    //执行重载
+                    table.reload('demo', {
+                        where: { //设定异步数据接口的额外参数，任意设
+                            key: $("#demoReload").val()
+                        }
+                        , page: {
+                            curr: 1 //重新从第 1 页开始
+                        }
+                    });
+                }
+            };
+
+            //监听行工具事件
+            table.on('tool(test)', function (obj) {
+                var data = obj.data;
+
+                // 修改
+                if (obj.event === 'update') {
+                    // 渲染
+                    $("#id-inform").val(data.id)
+                    $("#old-name-inform").val(data.name);
+                    $("#old-birthdayStr-inform").val(data.birthdayStr);
+                    $("#old-description-inform").val(data.description);
+                    $("#old-avgScore-inform").val(data.avgScore);
+
+                    $("#name-input").val(data.name);
+                    $("#birthday-input").val(data.birthdayStr);
+                    $("#description-input").val(data.description);
+                    $("#avgScore-input").val(data.avgScore);
+                    layer.open({
+                        type: 1,
+                        area: ['300px', '250px'],
+                        title: '编辑'
+                        , content: $("#common-form"),
+                        shade: 0,
+                        btn: ['提交']
+                        , btn1: function (index, layero) {
+                            $.ajax({
+                                url: "/student/common",
+                                type: "put",
+                                dataType: "json",
+                                data: $("#common-form").serialize(),
+                                success: function (e) {
+                                    if (e.flag) {
+                                        layer.closeAll();
+                                        window.location.reload();
+                                    }
+                                }
+                            })
+                        },
+                        cancel: function (layero, index) {
+                            layer.closeAll();
+                        }
+                    });
+                }
+
+                // 删除操作
+                if (obj.event === 'delete') {
+                    // 渲染
+                    $("#id-inform").val(data.id)
+                    $("#old-name-inform").val(data.name);
+                    $("#old-birthdayStr-inform").val(data.birthdayStr);
+                    $("#old-description-inform").val(data.description);
+                    $("#old-avgScore-inform").val(data.avgScore);
+                    $.ajax({
+                        url: "/student/common",
+                        type: "delete",
+                        data:$("#common-form").serialize(),
+                        dataType: "json",
+                        success: function (e) {
+                            if (e.flag) {
+                                window.location.reload();
+                            }else {
+                                alert(e.msg);
+                            }
+                        }
+                    });
+                }
+
+            })
+        });
+
+        // 搜索点击事件
+        $('.demoTable .layui-btn').on('click', function () {
+            var type = $(this).data('type');
+            active[type] ? active[type].call(this) : '';
+        });
+
+        $(function () {
+            // 添加新角色事件
+            $("#insert-button").click(function () {
+                layer.open({
+                    type: 1,
+                    title: '编辑'
+                    , content: $("#common-form"),
+                    shade: 0,
+                    btn: ['提交']
+                    , btn1: function (index, layero) {
+                        $.ajax({
+                            url: "/student/common",
+                            type: "post",
+                            dataType: "json",
+                            data: $("#common-form").serialize(),
+                            success: function (e) {
+                                if (e.flag) {
+                                    layer.closeAll();
+                                    window.location.reload();
+                                } else {
+                                    layer.msg(e.msg);
+                                }
+                            }
+                        })
+                    },
+                    cancel: function (layero, index) {
+                        layer.closeAll();
+                    }
+                });
+            });
+        });
+
+    </script>
+    <script>
+        !function () {
+            //无需再执行layui.use()方法加载模块，直接使用即可
+            var form = layui.form
+                , layer = layui.layer;
+            //…
+        }();
+    </script>
+</head>
+<body>
+<div>
+    <div class="demoTable">
+        <button class="layui-btn" data-type="reload" id="insert-button">新增</button>
+    </div>
+    <div>
+        <!--list-->
+        <table id="demo" lay-filter="test"></table>
+    </div>
+    <div>
+        <a href="/">回到index</a>
+    </div>
+</div>
+<!-- 角色添加表单 -->
+<form class="layui-form" id="common-form" style="display: none">
+    <div>
+        <input type="hidden" name="id" id="id-inform">
+        <input type="hidden" name="oldName" id="old-name-inform">
+        <input type="hidden" name="oldBirthdayStr" id="old-birthdayStr-inform">
+        <input type="hidden" name="oldDescription" id="old-description-inform">
+        <input type="hidden" name="oldAvgScore" id="old-avgScore-inform">
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">姓名</label>
+        <div class="layui-input-block">
+            <input type="text" name="name" class="layui-input" id="name-input" >
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">出生日期</label>
+        <div class="layui-input-block">
+            <input type="text" name="birthdayStr" placeholder="请选择您的生日" class="layui-input" id="birthday-input"
+                   autocomplete="off">
+        </div>
+    </div>
+    <div class="layui-form-item layui-form-text">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block">
+            <textarea name="description" placeholder="请输入备注" class="layui-textarea" id="description-input"></textarea>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">平均分</label>
+        <div class="layui-input-block">
+            <input type="text" name="avgScore" class="layui-input" id="avgScore-input" autocomplete="off">
+        </div>
+    </div>
+</form>
+<script>
+    layui.use('laydate', function () {
+        var laydate = layui.laydate;
+
+        //执行一个laydate实例
+        laydate.render({
+            elem: '#birthday-input' //指定元素
+            , type: 'date'
+        });
+    });
+</script>
+</body>
+</html>
